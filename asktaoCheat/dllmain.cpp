@@ -1,6 +1,7 @@
 #include <Windows.h>
-#include <Core/Console/ConsoleShareMemory.h>
+#include <Core/Command/Command.h>
 
+em_Script_Status g_emScriptStatus = em_Script_Status_None;
 
 BOOL WINAPI DllMain(
 	_In_ HINSTANCE ,
@@ -9,11 +10,7 @@ BOOL WINAPI DllMain(
 {
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (!CConsoleShareMemory::GetInstance().Initialize())
-		{
-			::MessageBoxW(NULL, L"Read Console ShareMemory Faild!!!", L"", NULL);
-			return FALSE;
-		}
+		
 	}
 	return TRUE;
 }
