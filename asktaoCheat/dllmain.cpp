@@ -10,7 +10,11 @@ BOOL WINAPI DllMain(
 {
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		
+		if (!CCommand::GetInstance().Initialize(L"asktao"))
+		{
+			::MessageBoxW(NULL, L"Initialize Cheat Faild!", L"", NULL);
+			return FALSE;
+		}
 	}
 	return TRUE;
 }

@@ -3,6 +3,7 @@
 #include <LogLib/CmdLog.h>
 #include <CharacterLib/Character.h>
 #include <HookLib/InlineHook/InlineHook.h>
+#include <Core/Feature/Script/IPython.h>
 
 #pragma comment(lib,"user32.lib")
 #pragma comment(lib,"LogLib.lib")
@@ -48,6 +49,13 @@ VOID CCommandExpr::Run(CONST std::vector<std::wstring>& Vec)
 	}
 
 	// Run Python Script
+	_AsyncScriptPtr = std::async(std::launch::async, [] 
+	{
+		g_emScriptStatus = em_Script_Status_Running;
+		CIPython::GetInstance().Initialize();
+		LOG_C_D(L"Script Excute Done!");
+		g_emScriptStatus = em_Script_Status_Stop;
+	});
 }
 
 VOID CCommandExpr::Stop(CONST std::vector<std::wstring>&)
@@ -86,12 +94,17 @@ BOOL CCommand::Initialize(_In_ CONST std::wstring& wsPlayerName)
 {
 	_hEvent = ::CreateEventW(NULL, FALSE, NULL, NULL);
 	libTools::CLog::GetInstance().SetClientName(wsPlayerName, libTools::CCharacter::MakeCurrentPath(L"\\Log\\"));
+	libTools::CLog::GetInstance().SetSyncSendLog();
 	if (!libTools::CInlineHook::Hook(reinterpret_cast<LPVOID>(PeekMessageA), reinterpret_cast<LPVOID>(NewPeekMessageA), reinterpret_cast<LPVOID *>(&_OldPeekMessageA)))
 	{
 		LOG_MSG_CF(L"Hook PeekMessageA Faild!");
 		return FALSE;
 	}
 	
+	libTools::g_EchoExceptionMsgPtr = [](CONST std::wstring& wsText)
+	{
+		LOG_MSG_CF(wsText.c_str());
+	};
 
 	static CCommandExpr Instance;
 	return libTools::CCmdLog::GetInstance().Run(wsPlayerName, Instance.GetVec());
