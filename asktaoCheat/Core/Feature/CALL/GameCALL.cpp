@@ -82,3 +82,23 @@ VOID CGameCALL::Tranfer(_In_ DWORD dwPlayerId, _In_ DWORD dwItemId, _In_ LPCSTR 
 		LOG_C_D(L"ID=%X, ItemId=%X MapInfo=[%s]", dwPlayerId, dwItemId, libTools::CCharacter::ASCIIToUnicode(szMapText).c_str());
 	});
 }
+
+VOID CGameCALL::ClickNpcMenuItem(_In_ DWORD dwGameUiObject)
+{
+	__try
+	{
+		__asm
+		{
+			MOV ECX, dwGameUiObject;
+			MOV EBX, DWORD PTR DS : [ECX];
+			MOV EAX, DWORD PTR DS : [EBX + 0x13C];
+			PUSH 0;
+			CALL EAX;
+		}
+		LOG_C_D(L"ClickNpcMenuItem");
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		::MessageBoxW(NULL, L"ClickNpcMenuItem", L"", NULL);
+	}
+}

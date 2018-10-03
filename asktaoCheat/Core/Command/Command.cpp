@@ -48,6 +48,12 @@ VOID CCommandExpr::Run(CONST std::vector<std::wstring>& Vec)
 		return;
 	}
 
+	if (g_emScriptStatus == em_Script_Status_Running)
+	{
+		LOG_C_D(L"Running...");
+		return;
+	}
+
 	// Run Python Script
 	_AsyncScriptPtr = std::async(std::launch::async, [] 
 	{
@@ -112,6 +118,7 @@ BOOL CCommand::Initialize(_In_ CONST std::wstring& wsPlayerName)
 
 VOID CCommand::ExcutePtrToGame(_In_ std::function<VOID(VOID)> Ptr)
 {
+	std::lock_guard<CCommand> _LockPtr(*this);
 	while (_IsExistExcuteMethod)
 		::Sleep(100);
 
@@ -125,9 +132,9 @@ BOOL WINAPI CCommand::NewPeekMessageA(_Out_ LPMSG lpMsg, _In_opt_ HWND hWnd, _In
 {
 	if (_IsExistExcuteMethod)
 	{
+		_IsExistExcuteMethod = false;
 		_ExcuteMethodPtr();
 		::SetEvent(_hEvent);
-		_IsExistExcuteMethod = false;
 	}
 	return _OldPeekMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
 }

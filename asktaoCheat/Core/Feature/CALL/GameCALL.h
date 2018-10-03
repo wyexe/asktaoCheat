@@ -26,6 +26,8 @@ public:
 	static VOID UseSKill(_In_ DWORD dwInvokeId, _In_ DWORD dwTarId, _In_ DWORD dwSkillId);
 
 	static VOID Tranfer(_In_ DWORD dwPlayerId, _In_ DWORD dwItemId, _In_ LPCSTR pszMapInfo);
+
+	static VOID ClickNpcMenuItem(_In_ DWORD dwGameUiObject);
 private:
 	static CHAR         _szEmptyText[32];
 };

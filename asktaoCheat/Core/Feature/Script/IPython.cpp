@@ -53,34 +53,34 @@ CIPython& CIPython::GetInstance()
 
 BOOL CIPython::Initialize()
 {
-	PyImport_AppendInittab("asktaoAPI", PyInit_GameDLL);
-	Py_Initialize();
-	auto pyBnsAPIModule = PyImport_ImportModule("asktaoAPI");
-	if (pyBnsAPIModule == nullptr)
+	if (!_Initialized)
 	{
-		LOG_MSG_CF(L"python初始化asktaoAPI失败");
-		Py_Finalize();
-		return FALSE;
-	}
-
-	CONST static std::vector<std::string> VecModuleName =
-	{
-		"sys","traceback","time"
-	};
-
-	std::vector<PyObject *> VecModule;
-	for (auto& itm : VecModuleName)
-	{
-		auto pyModule = PyImport_ImportModule(itm.c_str());
-		if (pyModule == nullptr)
+		PyImport_AppendInittab("asktaoAPI", PyInit_GameDLL);
+		Py_Initialize();
+		auto pyBnsAPIModule = PyImport_ImportModule("asktaoAPI");
+		if (pyBnsAPIModule == nullptr)
 		{
-			LOG_MSG_CF(L"导入[%s]模块失败", libTools::CCharacter::ASCIIToUnicode(itm).c_str());
+			LOG_MSG_CF(L"python初始化XTLBB_API失败");
 			Py_Finalize();
 			return FALSE;
 		}
-		VecModule.push_back(pyModule);
+
+
+		// Import System Module
+		CONST static std::vector<std::string> VecModuleName =
+		{
+			"sys", "traceback", "time"
+		};
+
+
+		if (!ImportSystemModule(VecModuleName))
+			return FALSE;
+
+
+		_Initialized = TRUE;
 	}
 
+	
 	PySys_SetPath(L"G:\\asktao\\Script\\");
 	auto pyModule = PyImport_ImportModule("Run");
 	if (pyModule == nullptr)
@@ -92,6 +92,8 @@ BOOL CIPython::Initialize()
 		return FALSE;
 	}
 
+
+	_VecUserModule.push_back(pyModule);
 	auto pyMain = PyObject_GetAttrString(pyModule, "EntryPoint");
 	if (pyMain == nullptr)
 	{
@@ -109,14 +111,9 @@ BOOL CIPython::Initialize()
 
 
 
-	for(auto& itm : VecModule)
-		Py_DECREF(itm);
-
-
-	Py_DECREF(pyModule);
+	_VecUserModule.push_back(pyResult);
+	ReleaseUserModule();
 	Py_XDECREF(pyMain);
-	Py_DECREF(pyResult);
-	Py_Finalize();
 	return TRUE;
 }
 
@@ -205,7 +202,7 @@ PyObject* CIPython::Py_ReadText(_In_ PyObject*, _In_ PyObject* Args)
 
 		if (::IsBadCodePtr((FARPROC)dwTextPtr))
 		{
-			LOG_CF_E(L"无效文本指针");
+			LOG_CF_E(L"无效文本指针[%X]", dwTextPtr);
 			return;
 		}
 
@@ -313,12 +310,85 @@ PyObject* CIPython::EchoInvokeCALL(_In_ em_InvokeCALL_Type emType, _In_ std::vec
 		PyMem_Free(pwszParam);
 		pwszParam = nullptr;
 		break;
+	case emType_ClickNpcMenuItem:
+		if (Vec.size() != 1)
+		{
+			LOG_MSG_CF(L"参数不够!");
+		}
+		// GameUiObject
+		dwParam1 = PyLong_AsUnsignedLong(Vec.at(0));
+		CCommand::GetInstance().ExcutePtrToGame([&] { CGameCALL::ClickNpcMenuItem(dwParam1); });
+		break;
 	default:
 		break;
 	}
 	
 	return PyLong_FromLong(dwRetCode);
 }
+
+BOOL CIPython::ImportUserModule(_In_ CONST std::vector<std::string>& VecModuleName)
+{
+	return ImportModule(VecModuleName, _VecUserModule);
+}
+
+BOOL CIPython::ImportSystemModule(_In_ CONST std::vector<std::string>& VecModuleName)
+{
+	return ImportModule(VecModuleName, _VecSystemModule);
+}
+
+BOOL CIPython::ImportModule(_In_ CONST std::vector<std::string>& VecModuleName, _Out_ std::vector<PyObject *>& VecModule) CONST
+{
+	for (auto& itm : VecModuleName)
+	{
+		auto pyModule = PyImport_ImportModule(itm.c_str());
+		if (pyModule == nullptr)
+		{
+			LOG_MSG_CF(L"导入[%s]模块失败", libTools::CCharacter::ASCIIToUnicode(itm).c_str());
+			Py_Finalize();
+			return FALSE;
+		}
+		VecModule.push_back(pyModule);
+	}
+	return TRUE;
+}
+
+VOID CIPython::ReleaseUserModule()
+{
+	for (auto itm : _VecUserModule)
+	{
+		Py_DECREF(itm);
+	}
+	_VecUserModule.clear();
+}
+
+VOID CIPython::ReleaseSystemModule()
+{
+	for (auto itm : _VecSystemModule)
+	{
+		Py_DECREF(itm);
+	}
+	_VecSystemModule.clear();
+}
+
+VOID CIPython::Release()
+{
+	__try
+	{
+		if (_Initialized)
+		{
+			ReleaseUserModule();
+			ReleaseSystemModule();
+			//Py_Finalize();
+
+			_Initialized = FALSE;
+		}
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		::MessageBoxW(NULL, L"CIPython::Release Exception!", L"", NULL);
+	}
+}
+
 
 PyMODINIT_FUNC PyInit_GameDLL()
 {

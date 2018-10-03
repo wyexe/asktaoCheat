@@ -14,6 +14,7 @@ private:
 	{
 		emType_UseItem,
 		emType_Tranfer,
+		emType_ClickNpcMenuItem
 	};
 private:
 	struct module_state
@@ -49,12 +50,28 @@ private:
 	static VOID PrintPyError();
 private:
 	static PyObject* EchoInvokeCALL(_In_ em_InvokeCALL_Type emType, _In_ std::vector<PyObject*>& Vec);
+
+	BOOL ImportUserModule(_In_ CONST std::vector<std::string>& VecModuleName);
+
+	BOOL ImportSystemModule(_In_ CONST std::vector<std::string>& VecModuleName);
+
+	BOOL ImportModule(_In_ CONST std::vector<std::string>& VecModuleName, _Out_ std::vector<PyObject *>& VecModule) CONST;
+
+	VOID ReleaseUserModule();
+
+	VOID ReleaseSystemModule();
+
+	VOID Release();
 public:
 	static PyModuleDef _ModuleDef;
 private:
 	static PyMethodDef  _PyMethodArray[];
 	static module_state _PyModuleState;
 	static BOOL _IsExistPythonError;
+private:
+	std::vector<PyObject *> _VecSystemModule;
+	std::vector<PyObject *> _VecUserModule;
+	BOOL _Initialized = FALSE;
 };
 
 

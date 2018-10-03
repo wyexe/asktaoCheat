@@ -6,6 +6,7 @@
 #include <functional>
 #include <future>
 #include <LogLib/LogExpression.h>
+#include <ProcessLib/Lock/Lock.h>
 
 class CCommandExpr : public libTools::CExprFunBase
 {
@@ -28,7 +29,7 @@ private:
 
 
 
-class CCommand
+class CCommand : public libTools::CThreadLock
 {
 private:
 	using PeekMessageADef = BOOL(WINAPI *)(_Out_ LPMSG lpMsg, _In_opt_ HWND hWnd, _In_ UINT wMsgFilterMin, _In_ UINT wMsgFilterMax, _In_ UINT wRemoveMsg);
